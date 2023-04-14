@@ -1,0 +1,32 @@
+body {
+    display: flex;
+    align-items: stretch;
+    height: 97vh;
+}
+
+.scores {
+    flex: 1;
+    margin: 1rem;
+    padding: 1rem;
+
+}
+
+.game {
+    display: flex;
+    flex: 1;
+    margin: 1rem;
+
+    justify-content: center;
+    align-items: center;
+}
+
+canvas {
+    border: 1px solid #000;
+  }
+
+.best-scores {
+    flex: 1;
+    margin: 1rem;
+    padding: 1rem;
+
+}
