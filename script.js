@@ -1,210 +1,242 @@
+const scoreGame = document.getElementById("score")
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-const tetrominoes = [
-  {
-    shape: [[1, 1, 1, 1]],
-    color: "#FF0D72",
-  },
-  {
-    shape: [[1, 1], [1, 1]],
-    color: "#0DC2FF",
-  },
-  {
-    shape: [[1, 1, 1], [0, 1, 0]],
-    color: "#0DFF72",
-  },
-  {
-    shape: [[1, 1, 0], [0, 1, 1]],
-    color: "#F538FF",
-  },
-  {
-    shape: [[0, 1, 1], [1, 1, 0]],
-    color: "#FF8E0D",
-  },
-  {
-    shape: [[0, 1, 0], [1, 1, 1]],
-    color: "#FFE138",
-  },
-  {
-    shape: [[1, 0, 0], [1, 1, 1]],
-    color: "#3877FF",
-  },
-];
+const blocks = 30
+let score = 0
 
-const gameSpeed = 500;
-const blockSize = 30;
-const boardWidth = 10;
-const boardHeight = 20;
-let currentPiece;
-let board
-let requestAnimationFrameID;
+function DrawSquare (x, y, color) {
+  ctx.fillStyle = color
+  ctx.fillRect(x * blocks, y * blocks, blocks, blocks)
+  ctx.strokeStyle = 'black'
+  ctx.strokeRect(x * blocks, y * blocks, blocks, blocks)
+}
 
-document.addEventListener('DOMContentLoaded', () => {
+const board_Y = 20
+const board_X = 10
+// Color empty square
+const EMPTY = 'white'
+let board = []
 
-  let gameRunning = true;
+// CreateBoard
+for (let row = 0; row < board_Y; row++) {
+  board[row] = [];
+  for (let col = 0; col < board_X; col++) {
+    board[row][col] = EMPTY;
+  }
+}
 
-  const createBoard = () => {
-    const board = [];
-    for (let row = 0; row < 20; row++) {
-      board[row] = Array.from({ length: 10 }).fill(0);
+function DrawBoard () {
+  for (let row = 0; row < board_Y; row++) {
+    for (let col = 0; col < board_X; col++) {
+      DrawSquare(col, row, board[row][col])
     }
-    return board;
-  };
+  }
+}
 
-  const startGame = () => {
-    board = createBoard();
-    currentPiece = generateRandomPiece();
-    requestAnimationFrame(gameLoop);
-  };
+DrawBoard()
 
-  const generateRandomPiece = () => {
-    const pieces = [
-      { blocks: [[0, 0, 0, 0], [1, 1, 1, 1], [0, 0, 0, 0]], color: "#00ffff", },
-      { blocks: [[1, 0, 0], [1, 1, 1], [0, 0, 0]], color: "#0000ff", },
-      { blocks: [[0, 0, 1], [1, 1, 1], [0, 0, 0]], color: "#ffa500", },
-      { blocks: [[1, 1], [1, 1]], color: "#ffff00", },
-      { blocks: [[0, 1, 1], [1, 1, 0], [0, 0, 0]], color: "#00ff00", },
-      { blocks: [[0, 1, 0], [1, 1, 1], [0, 0, 0]], color: "#800080", },
-      { blocks: [[1, 1, 0], [0, 1, 1], [0, 0, 0]], color: "#ff0000", },
-    ];
+const PIECES = [
+  [Z, 'red'],
+  [S, 'green'],
+  [T, 'cyan'],
+  [O, 'indigo'],
+  [I, 'blue'],
+  [L, 'purple'],
+  [J, 'orange']
+]
+// init piece
+let p = new Piece(PIECES[0][0], PIECES[0][1])
 
-    const index = Math.floor(Math.random() * pieces.length);
-    return { ...pieces[index], x: 4, y: 0 };
-  };
+// Object Piece
+function Piece (tetromino, color) {
+  this.tetromino = tetromino
+  this.color = color
+  // start from first pattern
+  this.tetrominoN = 0
+  this.activeTetromino = this.tetromino[this.tetrominoN]
+  // control pieces
+  this.x = 0
+  this.y = 0
+}
 
-  const drawPiece = (piece) => {
-    const { x, y, color, blocks } = piece;
-    ctx.fillStyle = color;
-    for (let row = 0; row < blocks.length; row++) {
-      for (let col = 0; col < blocks[row].length; col++) {
-        if (blocks[row][col]) {
-          ctx.fillRect(
-            (col + x) * blockSize,
-            (row + y) * blockSize,
-            blockSize,
-            blockSize
-          );
-        }
+Piece.prototype.fill = function (color) {
+  for (let row = 0; row < this.activeTetromino.length; row++) {
+    for (let col = 0; col < this.activeTetromino.length; col++) {
+      if (this.activeTetromino[row][col])
+        DrawSquare(this.x + col, this.y + row, color)
+    }
+  }
+}
+
+Piece.prototype.draw = function () {
+  this.fill(this.color)
+}
+
+Piece.prototype.unDraw = function () {
+  this.fill(EMPTY)
+}
+
+Piece.prototype.movePieceDown = function () {
+  if (!this.collision(0, 1, this.activeTetromino)) {
+    this.unDraw()
+    this.y++
+    this.draw()
+  } else {
+    this.lock()
+    p = randomPiece()
+  }
+}
+
+Piece.prototype.movePieceRight = function () {
+  if (!this.collision(1, 0, this.activeTetromino)) {
+    this.unDraw()
+    this.x++
+    this.draw()
+  }
+}
+
+Piece.prototype.movePieceLeft = function () {
+  if (!this.collision(-1, 0, this.activeTetromino)) {
+    this.unDraw()
+    this.x--
+    this.draw()
+  }
+}
+
+Piece.prototype.rotatePiece = function () {
+  let nexPattern = this.tetromino[(this.tetrominoN + 1) % this.tetromino.length]
+  let kick = 0
+
+  if (this.collision(0, 0, nexPattern)) {
+    if (this.x > board_X / 2) {
+      // right wall, need move piece to the left to rotate
+      kick = -1
+    } else {
+      // left wall, need move piece to the right to rotate
+      kick = 1
+    }
+  }
+
+  if (!this.collision(kick, 0, nexPattern)) {
+    this.unDraw()
+    this.x += kick
+    this.tetrominoN = (this.tetrominoN + 1) % this.tetromino.length
+    this.activeTetromino = this.tetromino[this.tetrominoN]
+    this.draw()
+  }
+}
+
+Piece.prototype.collision = function (x, y, piece) {
+  for (let row = 0; row < piece.length; row++) {
+    for (let col = 0; col < piece.length; col++) {
+      // square is empty, continue
+      if (!piece[row][col]) { continue }
+      // x, y after movement
+      let newX = this.x + col + x
+      let newY = this.y + row + y
+      if (newX < 0 || newX >= board_X || newY >= board_Y) {
+        return true
+      }
+      // skip newY
+      if (newY < 0) { continue }
+      // check there is locked piece
+      if (board[newY][newX] != EMPTY) {
+        return true
       }
     }
   }
+  return false
+}
 
-  function drawBoard (board) {
-    for (let row = 0; row < boardHeight; row++) {
-      for (let col = 0; col < boardWidth; col++) {
-        const color = board[row][col];
-        if (color) {
-          drawBlock(col, row, color);
+Piece.prototype.lock = function () {
+  for (row = 0; row < this.activeTetromino.length; row++) {
+    for (col = 0; col < this.activeTetromino.length; col++) {
+      // we skip the vacant squares
+      if (!this.activeTetromino[row][col]) {
+        continue;
+      }
+      // pieces to lock on top = game over
+      if (this.y + row < 0) {
+        alert("Game Over");
+        // stop request animation frame
+        gameOver = true;
+        break;
+      }
+      // we lock the piece
+      board[this.y + row][this.x + col] = this.color;
+    }
+  }
+  // remove full rows
+  for (row = 0; row < board_Y; row++) {
+    let isRowFull = true;
+    for (col = 0; col < board_X; col++) {
+      isRowFull = isRowFull && (board[row][col] != EMPTY);
+    }
+    if (isRowFull) {
+      // if the row is full
+      // we move down all the rows above it
+      for (y = row; y > 1; y--) {
+        for (col = 0; col < board_X; col++) {
+          board[y][col] = board[y - 1][col];
         }
       }
-    }
-  }
-
-  function drawBlock (x, y, color) {
-    ctx.fillStyle = color;
-    ctx.fillRect(x * blockSize, y * blockSize, blockSize, blockSize);
-    ctx.strokeStyle = 'white';
-    ctx.strokeRect(x * blockSize, y * blockSize, blockSize, blockSize);
-  }
-
-  ///----------------///
-
-  function movePieceDown () {
-    currentPiece.y++;
-    /* FIX CHECKCOLLISION --------------------------------
-    if (checkCollision()) {
-      currentPiece.y--;
-      addPieceToBoard();
-      spawnNewPiece();
-    }*/
-  }
-
-
-  function lockPiece () {
-    // Añadir los bloques de la pieza actual al tablero
-    for (let row = 0; row < currentPiece.blocks.length; row++) {
-      for (let col = 0; col < currentPiece.blocks[row].length; col++) {
-        if (currentPiece.blocks[row][col]) {
-          board[currentPiece.y + row][currentPiece.x + col] = currentPiece.color;
-        }
+      // the top row board[0][..] has no row above it
+      for (col = 0; col < board_X; col++) {
+        board[0][col] = EMPTY;
       }
-    }
-
-    // Generar una nueva pieza al azar y establecerla como la pieza actual
-    currentPiece = generateRandomPiece();
-
-    // Comprobar si la nueva pieza colisiona inmediatamente después de ser generada
-    if (checkCollision()) {
-      gameRunning = false;
-      alert('Game over!');
+      // increment the score
+      score += 10;
     }
   }
+  // update the board
+  DrawBoard();
 
-  function checkCollision (piece, board, row, col) {
-    console.log(piece)
-    for (let i = 0; i < piece.length; i++) {
-      for (let j = 0; j < piece[i].length; j++) {
-        if (piece[i][j] && (board[row + i] === undefined || board[row + i][col + j] === undefined || board[row + i][col + j])) {
-          return true;
-        }
-      }
-    }
-    return false;
+  // update the score
+  //scoreGame.innerHTML = score;
+}
+
+function randomPiece () {
+  let randomN = Math.floor(Math.random() * PIECES.length)
+  return new Piece(PIECES[randomN][0], PIECES[randomN][1])
+}
+
+document.addEventListener('keydown', UserInput)
+function UserInput (event) {
+  switch (event.code) {
+    case "ArrowLeft":
+    case "KeyA":
+      p.movePieceLeft();
+      dropStart = Date.now()
+      break;
+    case "ArrowRight":
+    case 'KeyD':
+      p.movePieceRight();
+      dropStart = Date.now()
+      break;
+    case "ArrowDown":
+    case 'KeyS':
+      p.movePieceDown();
+      break;
+    case "Space":
+      p.rotatePiece();
+      dropStart = Date.now()
+      break;
   }
+}
 
-
-  function addPieceToBoard () {
-    const [pieceRows, pieceCols] = [currentPiece.shape.length, currentPiece.shape[0].length];
-
-    for (let row = 0; row < pieceRows; row++) {
-      for (let col = 0; col < pieceCols; col++) {
-        if (currentPiece.shape[row][col]) {
-          const boardRow = currentPiece.row + row;
-          const boardCol = currentPiece.col + col;
-          board[boardRow][boardCol] = currentPiece.color;
-        }
-      }
-    }
+let dropStart = Date.now()
+let gameOver = false
+function drop () {
+  let now = Date.now()
+  let delta = now - dropStart
+  if (delta > 1000) {
+    p.movePieceDown()
+    dropStart = Date.now()
   }
-
-  function spawnNewPiece () {
-    const randomIndex = Math.floor(Math.random() * tetrominoes.length);
-    currentPiece = {
-      shape: tetrominoes[randomIndex].shape,
-      color: tetrominoes[randomIndex].color,
-      row: 0,
-      col: Math.floor((board[0].length - tetrominoes[randomIndex].shape[0].length) / 2),
-    };
+  if (!gameOver) {
+    requestAnimationFrame(drop)
   }
+}
 
-  function clearCanvas () {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-  }
-
-  function gameLoop () {
-
-    // Si el juego está en ejecución, mover la pieza actual hacia abajo
-    if (gameRunning) {
-      movePieceDown();
-    }
-
-    clearCanvas()
-
-    // Dibujar el tablero y la pieza actual en el canvas
-    drawBoard(board);
-    drawPiece(currentPiece);
-
-    // Programar el siguiente ciclo del loop de juego
-    setTimeout(() => {
-      requestAnimationFrameID = requestAnimationFrame(gameLoop);
-    }, gameSpeed);
-  }
-
-  startGame();
-})
-
-const stopButton = document.getElementById('stopButton');
-stopButton.addEventListener('click', () => {
-  cancelAnimationFrame(requestAnimationFrameID);
-});
+drop()
