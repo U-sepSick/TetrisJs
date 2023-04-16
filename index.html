@@ -10,16 +10,23 @@
 </head>
 
 <body>
-    <div class="score">Score:000000</div>
-    <div class="game">
-        <canvas id="pre_piece" width="200" height="200"></canvas>
-        <canvas id="canvas" width="400" height="600" ></canvas>
+    <div class="pre_piece">
+        <canvas id="pre_piece" width="140" height="140"></canvas>
     </div>
-    <div class="best-scores">
+    <div class="game">
+        <canvas id="canvas" width="350" height="700" ></canvas>
+    </div>
+    <div class="last-rows"></div>
+    <div class="image">
         <button id="startButton">Empezar juego</button>
         <button id="stopButton">Parar juego</button>
     </div>
+    <div class="lines-left"></div>
+    <div class="best-scores"></div>
 </body>
 <script src="tetrominoes.js"></script>
-<script src="script.js"></script>
+<script src="graphics.js"></script>
+<script src="inputs.js"></script>
+<script src="game.js"></script>
+<script src="piece.js"></script>
 </html>

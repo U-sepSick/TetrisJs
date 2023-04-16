@@ -1,52 +1,6 @@
 const scoreGame = document.getElementById("score")
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
 
-const blocks = 30
 let score = 0
-
-function DrawSquare (x, y, color) {
-  ctx.fillStyle = color
-  ctx.fillRect(x * blocks, y * blocks, blocks, blocks)
-  ctx.strokeStyle = 'black'
-  ctx.strokeRect(x * blocks, y * blocks, blocks, blocks)
-}
-
-const board_Y = 20
-const board_X = 10
-// Color empty square
-const EMPTY = 'white'
-let board = []
-
-// CreateBoard
-for (let row = 0; row < board_Y; row++) {
-  board[row] = [];
-  for (let col = 0; col < board_X; col++) {
-    board[row][col] = EMPTY;
-  }
-}
-
-function DrawBoard () {
-  for (let row = 0; row < board_Y; row++) {
-    for (let col = 0; col < board_X; col++) {
-      DrawSquare(col, row, board[row][col])
-    }
-  }
-}
-
-DrawBoard()
-
-const PIECES = [
-  [Z, 'red'],
-  [S, 'green'],
-  [T, 'cyan'],
-  [O, 'indigo'],
-  [I, 'blue'],
-  [L, 'purple'],
-  [J, 'orange']
-]
-// init piece
-let p = new Piece(PIECES[0][0], PIECES[0][1])
 
 // Object Piece
 function Piece (tetromino, color) {
@@ -56,8 +10,23 @@ function Piece (tetromino, color) {
   this.tetrominoN = 0
   this.activeTetromino = this.tetromino[this.tetrominoN]
   // control pieces
-  this.x = 0
+  this.x = 3
   this.y = 0
+}
+
+Piece.prototype.fillPrePiece = function () {
+  for (let row = 0; row < this.activeTetromino.length; row++) {
+    for (let col = 0; col < this.activeTetromino.length; col++) {
+      if (this.activeTetromino[row][col])
+        if (this.activeTetromino[row].length > 3 ||
+          this.activeTetromino[col].length > 3) {
+          DrawPreSquare(col, row, this.color)
+        }
+        else {
+          DrawPreSquare(col+1, row+1, this.color)
+        }
+    }
+  }
 }
 
 Piece.prototype.fill = function (color) {
@@ -195,48 +164,3 @@ Piece.prototype.lock = function () {
   // update the score
   //scoreGame.innerHTML = score;
 }
-
-function randomPiece () {
-  let randomN = Math.floor(Math.random() * PIECES.length)
-  return new Piece(PIECES[randomN][0], PIECES[randomN][1])
-}
-
-document.addEventListener('keydown', UserInput)
-function UserInput (event) {
-  switch (event.code) {
-    case "ArrowLeft":
-    case "KeyA":
-      p.movePieceLeft();
-      dropStart = Date.now()
-      break;
-    case "ArrowRight":
-    case 'KeyD':
-      p.movePieceRight();
-      dropStart = Date.now()
-      break;
-    case "ArrowDown":
-    case 'KeyS':
-      p.movePieceDown();
-      break;
-    case "Space":
-      p.rotatePiece();
-      dropStart = Date.now()
-      break;
-  }
-}
-
-let dropStart = Date.now()
-let gameOver = false
-function drop () {
-  let now = Date.now()
-  let delta = now - dropStart
-  if (delta > 1000) {
-    p.movePieceDown()
-    dropStart = Date.now()
-  }
-  if (!gameOver) {
-    requestAnimationFrame(drop)
-  }
-}
-
-drop()
