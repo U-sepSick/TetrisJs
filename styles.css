@@ -20,6 +20,10 @@ body {
     align-items: center;
 }
 
+#pre_piece{
+    background-color: aqua;
+    top:0
+}
 
 .best-scores {
     flex: 1;
